@@ -11,6 +11,7 @@ ditto "$DIST/PeriPrint.app" "$PKG/PeriPrint.app"
 ditto "$DIST/PeriPrint Driver.app" "$PKG/PeriPrint Driver.app"
 cp "$DIST/peripage" "$PKG/peripage"
 cp "$ROOT/driver/setup.sh" "$ROOT/driver/uninstall.sh" "$PKG/driver/"
+cp "$ROOT/LICENSE" "$ROOT/THIRD_PARTY_NOTICES.md" "$PKG/"
 (cd "$PKG" && ditto -c -k --norsrc --noextattr --noqtn . "$DIST/PeriPrint-macOS.zip")
 rm -rf "$PKG"
 echo "✓ $DIST/PeriPrint-macOS.zip ($(du -h "$DIST/PeriPrint-macOS.zip" | cut -f1))"

@@ -130,6 +130,11 @@ docs/PROTOCOL.md        protocolo obtenido de la app oficial de Android
   `usr/include/swift/module.modulemap` desactualizados, que rompen SwiftPM; `scripts/swift.sh` los esquiva.
   La solución de raíz es reinstalar las CLT (`sudo rm -rf /Library/Developer/CommandLineTools && xcode-select --install`).
 
+## Licencia
+
+Código abierto bajo licencia [MIT](LICENSE). Los avisos de terceros (Simon Tatham's Puzzles, base de
+puzzles de Lichess y recursos descargados en tiempo de uso) están en [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
 ## Créditos y licencias de terceros
 
 - Puzzles de ajedrez: [base de puzzles de Lichess](https://database.lichess.org/#puzzles) (CC0).
