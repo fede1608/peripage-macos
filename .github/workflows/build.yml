@@ -15,7 +15,7 @@ jobs:
     name: Test, build and package
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Toolchain
         run: |
@@ -42,7 +42,7 @@ jobs:
       - name: Package
         run: scripts/package.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PeriPrint-macOS-${{ env.PERIPRINT_VERSION }}
           path: dist/PeriPrint-macOS.zip
