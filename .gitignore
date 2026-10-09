@@ -1,0 +1,10 @@
+.build/
+.build-*/
+.swiftpm/
+.swiftpm-libs/
+dist/
+.playwright-mcp/
+*.log
+.DS_Store
+# Personal keepsake, not part of the project.
+docs/posteridad.png
