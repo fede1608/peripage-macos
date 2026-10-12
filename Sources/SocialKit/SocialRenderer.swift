@@ -10,7 +10,12 @@ public enum SocialRenderer {
         guard m.W > 16 else { return nil }
         let out: MonoBitmap?
         switch doc.layout {
-        case .card: out = post.platform == .capture ? captureCard(post, doc: doc, m) : card(post, doc: doc, m)
+        case .card:
+            switch post.platform {
+            case .capture: out = captureCard(post, doc: doc, m)
+            case .instagram: out = instagramCard(post, doc: doc, m)
+            case .x: out = card(post, doc: doc, m)
+            }
         case .photo: out = photo(post, doc: doc, m)
         case .sticker: out = sticker(post, doc: doc, m)
         case .label: out = label(post, doc: doc, model: model, m)

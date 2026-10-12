@@ -150,7 +150,12 @@ public enum SocialFetcher {
         var request = URLRequest(url: URL(string: "https://www.instagram.com/p/\(shortcode)/embed/captioned/")!)
         request.setValue("text/html,application/xhtml+xml", forHTTPHeaderField: "Accept")
         request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
-        let (data, response) = try await load(request)
+        var (data, response) = try await load(request)
+        if response.statusCode >= 500 {
+            // The embed endpoint fails intermittently; a second try usually works.
+            try await Task.sleep(for: .milliseconds(700))
+            (data, response) = try await load(request)
+        }
         if response.url?.path.contains("/accounts/login") == true { throw SocialError.instagramLogin }
         switch response.statusCode {
         case 200: break

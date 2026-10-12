@@ -90,6 +90,37 @@ import Testing
         #expect(bare.height < full.height)
     }
 
+    @Test func instagramCardShowsTheChosenCarouselPhoto() throws {
+        let post = SocialPost(platform: .instagram, handle: "natgeo", avatar: Self.image(100, 100), text: "Pie de foto",
+                              date: .now, images: [Self.image(1080, 1350), Self.image(1080, 566), Self.image(1080, 1080)],
+                              likes: 171_856, replies: 269)
+        var doc = SocialDoc()
+        let heights = try (0..<3).map { index in
+            doc.imageIndex = index
+            let card = try #require(SocialRenderer.render(post, doc: doc, model: .a6))
+            #expect(card.width == 384)
+            return card.height
+        }
+        // 4:5 portrait > square > 1.91:1 landscape, each printed edge to edge.
+        #expect(heights[0] > heights[2] && heights[2] > heights[1])
+        #expect(abs(heights[0] - heights[2] - 96) <= 1)  // 480 vs 384 dots of photo
+
+        doc.imageIndex = 99
+        let clamped = try #require(SocialRenderer.render(post, doc: doc, model: .a6))
+        doc.imageIndex = 2
+        #expect(clamped == SocialRenderer.render(post, doc: doc, model: .a6))
+    }
+
+    @Test func instagramCropKeepsTheAppAspectLimits() {
+        let tall = SocialRenderer.instagramCrop(Self.image(1000, 3000))
+        #expect(abs(Double(tall.height) / Double(tall.width) - 1.25) < 0.01)
+        let wide = SocialRenderer.instagramCrop(Self.image(3000, 1000))
+        #expect(abs(Double(wide.width) / Double(wide.height) - 1.91) < 0.01)
+        let square = SocialRenderer.instagramCrop(Self.image(800, 800))
+        #expect(square.width == 800 && square.height == 800)
+        #expect(SocialRenderer.spanishThousands(171_856) == "171.856")
+    }
+
     @Test func compactNumbersInSpanish() {
         #expect(SocialRenderer.compactNumber(0) == "0")
         #expect(SocialRenderer.compactNumber(999) == "999")

@@ -1,8 +1,9 @@
 #if DEBUG
 import AppKit
+import SocialKit
 import SwiftUI
 
-/// Debug-only: `PERIPRINT_SNAPSHOT=<dir> [PERIPRINT_SAMPLE_IMAGE=<img>] swift run PeriPrint`
+/// Debug-only: `PERIPRINT_SNAPSHOT=<dir> [PERIPRINT_SAMPLE_IMAGE=<img>] [PERIPRINT_SAMPLE_SOCIAL=<link>] swift run PeriPrint`
 /// captures the main window in every mode to PNG files and quits. Bluetooth is not touched.
 enum DebugSnapshot {
     static var directory: URL? {
@@ -15,6 +16,9 @@ enum DebugSnapshot {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if let path = ProcessInfo.processInfo.environment["PERIPRINT_SAMPLE_IMAGE"] {
             model.loadImage(from: URL(fileURLWithPath: path))
+        }
+        if let link = ProcessInfo.processInfo.environment["PERIPRINT_SAMPLE_SOCIAL"] {
+            model.socialPost = try? await SocialFetcher.fetch(link)
         }
         for mode in Mode.allCases {
             model.mode = mode

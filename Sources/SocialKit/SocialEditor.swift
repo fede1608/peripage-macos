@@ -57,6 +57,9 @@ public struct SocialEditor: View {
             }
             if let post, !fetching {
                 PostSummary(post: post)
+                if post.images.count > 1 {
+                    CarouselPicker(images: post.images, selection: $doc.imageIndex)
+                }
             } else if !fetching, errorMessage == nil {
                 Text("Posteos de X (x.com, twitter.com) e Instagram: fotos, carruseles, reels e historias. Para cuentas privadas que seguís e historias, iniciá sesión en Cuentas.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -204,11 +207,6 @@ public struct SocialEditor: View {
                     }
                 }
             }
-            if let count = post?.images.count, count > 1 {
-                Stepper(value: $doc.imageIndex, in: 0...(count - 1)) {
-                    Text("Imagen \(min(doc.imageIndex, count - 1) + 1) de \(count)")
-                }
-            }
         }
     }
 
@@ -236,6 +234,49 @@ public struct SocialEditor: View {
             ToneSlider("Gamma", value: $doc.pipeline.adjustments.gamma, in: 0.5...2.2, format: "%.2f")
                 .help("Valores > 1 aclaran los medios tonos (el papel térmico tiende a oscurecer)")
             Button("Restablecer tono") { doc.pipeline = .recommendedPhoto }
+        }
+    }
+}
+
+/// The photos of a carousel post as a strip of thumbnails; the selected one is printed.
+private struct CarouselPicker: View {
+    let images: [CGImage]
+    @Binding var selection: Int
+
+    private var selected: Int { min(max(0, selection), images.count - 1) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Foto")
+                Spacer()
+                Text("\(selected + 1) de \(images.count)").monospacedDigit().foregroundStyle(.secondary)
+            }
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(images.indices, id: \.self) { index in
+                            Button { selection = index } label: {
+                                Image(decorative: images[index], scale: 1)
+                                    .resizable().scaledToFill()
+                                    .frame(width: 58, height: 58)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(index == selected ? Color.accentColor : Color.primary.opacity(0.12),
+                                                          lineWidth: index == selected ? 3 : 1)
+                                    }
+                                    .opacity(index == selected ? 1 : 0.75)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Foto \(index + 1)")
+                            .id(index)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .onAppear { proxy.scrollTo(selected, anchor: .center) }
+            }
         }
     }
 }
