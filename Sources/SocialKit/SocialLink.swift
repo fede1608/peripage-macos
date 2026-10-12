@@ -4,7 +4,7 @@ import Foundation
 enum SocialLink: Equatable {
     case tweet(id: String)
     case instagramPost(shortcode: String)
-    case instagramStory(user: String)
+    case instagramStory(user: String, id: String?)
     case instagramProfile(user: String)
     case xProfile(user: String)
     /// t.co or instagram.com/share/… links: they must be followed to know the real post.
@@ -16,8 +16,8 @@ enum SocialLink: Equatable {
 
     var isFetchable: Bool {
         switch self {
-        case .tweet, .instagramPost, .redirect: true
-        case .instagramStory, .instagramProfile, .xProfile: false
+        case .tweet, .instagramPost, .instagramStory, .redirect: true
+        case .instagramProfile, .xProfile: false
         }
     }
 
@@ -46,7 +46,10 @@ enum SocialLink: Equatable {
 
         if instagramHosts.contains(host) {
             if parts.first == "share" { return .redirect(url) }
-            if parts.first == "stories", parts.count >= 2 { return .instagramStory(user: parts[1]) }
+            if parts.first == "stories", parts.count >= 2 {
+                let id = parts.count >= 3 && parts[2].allSatisfy(\.isNumber) ? parts[2] : nil
+                return .instagramStory(user: parts[1], id: id)
+            }
             if let i = parts.firstIndex(where: { ["p", "reel", "reels", "tv"].contains($0) }), i + 1 < parts.count {
                 let code = parts[i + 1]
                 guard !code.isEmpty, code.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }) else { return nil }

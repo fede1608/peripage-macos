@@ -45,9 +45,10 @@ También podés bajar el zip a mano desde [Releases](https://github.com/fede1608
   damero, ondas, confeti, Polaroid…
 
 **Más**
-- **Instagram y X**: pegá el link de un post público (tweets con fotos, posts, carruseles y reels de
-  Instagram) y se arma una tarjeta, foto, sticker o etiqueta de 15 mm. Para historias, cuentas privadas o tu
-  feed: navegador integrado (iniciás sesión vos) con modo **Capturar** para imprimir lo que señales.
+- **Instagram y X**: pegá el link de un post (tweets con fotos, posts, carruseles, reels e **historias** de
+  Instagram) y se arma una tarjeta, foto, sticker o etiqueta de 15 mm. Con **tu sesión iniciada** dentro de la
+  app (en la página oficial; PeriPrint nunca ve la contraseña) también trae posts de cuentas privadas que
+  seguís e historias. Para cualquier otra cosa en pantalla: navegador integrado con modo **Capturar**.
 - **Juegos** generados al azar (con número para repetirlos y solución aparte): Sudoku 9×9 y 6×6, sopa de
   letras (12 temas en español o tus palabras), laberintos rectangulares y circulares, nonogramas, Futoshiki,
   Puentes (Hashi), **ajedrez: mate en 1 y en 2** (2.000 posiciones de partidas reales de la base abierta de

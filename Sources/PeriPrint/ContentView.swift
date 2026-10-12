@@ -245,7 +245,7 @@ struct EmptyPreview: View {
                 Button("Elegir imagen…") { showImporter = true }
             case .social:
                 Text("Pegá el link de un post o capturá uno").font(.title3)
-                Text("Funciona con posts públicos de Instagram y X").foregroundStyle(.secondary)
+                Text("Públicos, o privados e historias con tu sesión iniciada").foregroundStyle(.secondary)
             case .history:
                 Text("Elegí una impresión de la lista").foregroundStyle(.secondary)
             default:

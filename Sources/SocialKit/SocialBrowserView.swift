@@ -9,9 +9,12 @@ import WebKit
 public struct SocialBrowserView: View {
     @StateObject private var browser = BrowserController()
     private let onCapture: (CGImage) -> Void
+    private let start: URL?
 
-    public init(onCapture: @escaping (CGImage) -> Void) {
+    /// `start` opens a specific page (e.g. a login page) instead of the site's home.
+    public init(onCapture: @escaping (CGImage) -> Void, start: URL? = nil) {
         self.onCapture = onCapture
+        self.start = start
     }
 
     public var body: some View {
@@ -45,7 +48,7 @@ public struct SocialBrowserView: View {
         }
         .onAppear {
             browser.onCapture = onCapture
-            browser.loadHomeIfNeeded()
+            if let start { browser.go(to: start.absoluteString) } else { browser.loadHomeIfNeeded() }
         }
         .onExitCommand { browser.setCapturing(false) }
     }

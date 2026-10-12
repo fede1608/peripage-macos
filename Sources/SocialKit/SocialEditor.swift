@@ -12,6 +12,9 @@ public struct SocialEditor: View {
     /// Bumped on every fetch or cancel, so a superseded request never touches the state.
     @State private var fetchGeneration = 0
     @State private var showBrowser = false
+    /// Page the browser opens on (a login page when signing in).
+    @State private var browserStart: URL?
+    @State private var loggedIn: [SocialPlatform: Bool] = [:]
 
     public init(doc: Binding<SocialDoc>, post: Binding<SocialPost?>) {
         self._doc = doc
@@ -55,7 +58,7 @@ public struct SocialEditor: View {
             if let post, !fetching {
                 PostSummary(post: post)
             } else if !fetching, errorMessage == nil {
-                Text("Posteos públicos de X (x.com, twitter.com) e Instagram (fotos, carruseles y reels). Para historias o cuentas privadas usá el navegador.")
+                Text("Posteos de X (x.com, twitter.com) e Instagram: fotos, carruseles, reels e historias. Para cuentas privadas que seguís e historias, iniciá sesión en Cuentas.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         } header: {
@@ -107,26 +110,65 @@ public struct SocialEditor: View {
 
     private var browserSection: some View {
         Section {
+            ForEach([SocialPlatform.instagram, .x], id: \.self) { platform in
+                accountRow(platform)
+            }
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Historias, cuentas privadas o lo que veas en pantalla")
-                    Text("Iniciá sesión vos mismo; la sesión queda guardada en esta Mac.")
+                    Text("Navegador con Capturar")
+                    Text("Para imprimir lo que veas en pantalla: tu feed, comentarios, perfiles…")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button { showBrowser = true } label: { Label("Abrir…", systemImage: "safari") }
+                Button { browserStart = nil; showBrowser = true } label: { Label("Abrir…", systemImage: "safari") }
             }
         } header: {
-            Text("Navegador")
+            Text("Cuentas")
+        } footer: {
+            Text("Con la sesión iniciada, el link también trae posteos de cuentas privadas que seguís e historias. Iniciás sesión en la página oficial dentro del navegador: PeriPrint nunca ve tu contraseña y la sesión queda solo en esta Mac.")
+                .font(.caption).foregroundStyle(.secondary)
         }
-        .sheet(isPresented: $showBrowser) {
-            BrowserSheet { image in
+        .task { await refreshSessions() }
+        .sheet(isPresented: $showBrowser, onDismiss: { Task { await refreshSessions() } }) {
+            BrowserSheet(start: browserStart) { image in
                 post = SocialPost(platform: .capture, images: [image])
                 doc.imageIndex = 0
                 errorMessage = nil
                 showBrowser = false
             }
         }
+    }
+
+    private func accountRow(_ platform: SocialPlatform) -> some View {
+        let active = loggedIn[platform] == true
+        return HStack {
+            Image(systemName: active ? "checkmark.circle.fill" : "person.crop.circle.badge.questionmark")
+                .foregroundStyle(active ? Color.green : Color.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(platform.title)
+                Text(active ? "Sesión iniciada" : "Sin sesión").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if active {
+                Button("Cerrar sesión") {
+                    Task {
+                        await SocialSession.logOut(platform)
+                        await refreshSessions()
+                    }
+                }
+            } else {
+                Button("Iniciar sesión…") {
+                    browserStart = SocialSession.loginURL(platform)
+                    showBrowser = true
+                }
+            }
+        }
+    }
+
+    private func refreshSessions() async {
+        var state: [SocialPlatform: Bool] = [:]
+        for platform in [SocialPlatform.instagram, .x] { state[platform] = await SocialSession.isLoggedIn(platform) }
+        loggedIn = state
     }
 
     // MARK: Design
@@ -264,14 +306,21 @@ private struct ToneSlider: View {
 /// The browser in a sheet, with a close button.
 private struct BrowserSheet: View {
     @Environment(\.dismiss) private var dismiss
+    let start: URL?
     let onCapture: (CGImage) -> Void
+
+    init(start: URL? = nil, onCapture: @escaping (CGImage) -> Void) {
+        self.start = start
+        self.onCapture = onCapture
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            SocialBrowserView(onCapture: onCapture)
+            SocialBrowserView(onCapture: onCapture, start: start)
             Divider()
             HStack {
-                Text("Navegá hasta el posteo o la historia, tocá Capturar y hacé clic sobre lo que quieras imprimir.")
+                Text(start != nil ? "Iniciá sesión y tocá Cerrar: después pegá el link del posteo o la historia y tocá Traer."
+                                  : "Navegá hasta el posteo o la historia, tocá Capturar y hacé clic sobre lo que quieras imprimir.")
                     .font(.callout).foregroundStyle(.secondary)
                 Spacer()
                 // No Esc shortcut here: Esc leaves capture mode inside the browser.

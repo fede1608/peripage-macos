@@ -54,11 +54,15 @@ import Testing
         #expect(SocialFetcher.canHandle("https://t.co/C9U5NOtGap"))
     }
 
+    @Test func storiesAreFetchableWithTheirId() {
+        #expect(SocialLink.parse("https://www.instagram.com/stories/natgeo/3456789012345678901/") == .instagramStory(user: "natgeo", id: "3456789012345678901"))
+        #expect(SocialLink.parse("https://www.instagram.com/stories/natgeo/") == .instagramStory(user: "natgeo", id: nil))
+        #expect(SocialFetcher.canHandle("https://www.instagram.com/stories/natgeo/3456789012345678901/"))
+    }
+
     @Test func recognizedButNotFetchable() {
-        #expect(SocialLink.parse("https://www.instagram.com/stories/natgeo/3456789012345678901/") == .instagramStory(user: "natgeo"))
         #expect(SocialLink.parse("https://www.instagram.com/natgeo/") == .instagramProfile(user: "natgeo"))
         #expect(SocialLink.parse("https://x.com/jack") == .xProfile(user: "jack"))
-        #expect(!SocialFetcher.canHandle("https://www.instagram.com/stories/natgeo/3456789012345678901/"))
         #expect(!SocialFetcher.canHandle("https://www.instagram.com/natgeo/"))
         #expect(!SocialFetcher.canHandle("https://x.com/jack"))
     }
@@ -70,11 +74,13 @@ import Testing
     }
 
     @Test func fetchRejectsUnsupportedLinksWithSpanishErrors() async {
+        SocialFetcher.isLoggedIn = { _ in false }
         await #expect(throws: SocialError.unsupportedLink) { try await SocialFetcher.fetch("https://example.com") }
         await #expect(throws: SocialError.instagramStory) { try await SocialFetcher.fetch("https://www.instagram.com/stories/natgeo/1/") }
         await #expect(throws: SocialError.profileLink) { try await SocialFetcher.fetch("https://x.com/jack") }
         #expect(SocialError.unsupportedLink.errorDescription?.contains("Pegá el link") == true)
-        #expect(SocialError.instagramStory.errorDescription?.contains("Capturar") == true)
+        #expect(SocialError.instagramStory.errorDescription?.contains("iniciá sesión") == true)
+        #expect(SocialError.tweetUnavailable.errorDescription?.contains("Iniciar sesión") == true)
     }
 
     @Test func instagramShortcodeDates() throws {

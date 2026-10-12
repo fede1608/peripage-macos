@@ -6,6 +6,9 @@ public enum SocialError: LocalizedError, Equatable {
     case unsupportedLink
     case profileLink
     case instagramStory
+    case storyExpired
+    case privateNotFollowed(SocialPlatform)
+    case xLogin
     case notFound
     case tweetUnavailable
     case instagramUnavailable
@@ -23,15 +26,21 @@ public enum SocialError: LocalizedError, Equatable {
         case .profileLink:
             "Ese link es de un perfil. Pegá el link de un posteo puntual (en el posteo: Compartir → Copiar link)."
         case .instagramStory:
-            "Las historias de Instagram no se pueden traer con el link: abrila en el Navegador, iniciá sesión y usá Capturar."
+            "Para traer historias, iniciá sesión en Instagram (Cuentas → Iniciar sesión) y volvé a tocar Traer. También podés abrirla en el Navegador y usar Capturar."
+        case .storyExpired:
+            "No encontré esa historia: las historias duran 24 horas, puede que ya no esté o que la hayan borrado."
+        case .privateNotFollowed(let platform):
+            "\(platform.title) no muestra ese posteo con tu sesión: la cuenta es privada y tu usuario no la sigue, o lo borraron."
+        case .xLogin:
+            "X pide iniciar sesión para ver ese posteo. Iniciá sesión en X (Cuentas → Iniciar sesión) y volvé a traerlo."
         case .notFound:
             "No encontré ese posteo. Fijate que el link esté completo; puede que lo hayan borrado."
         case .tweetUnavailable:
-            "X no deja mostrar ese posteo: puede ser de una cuenta protegida, estar borrado o tener restricción de edad. Probá abrirlo en el Navegador y capturarlo."
+            "X no deja mostrar ese posteo sin sesión: puede ser de una cuenta protegida, estar borrado o tener restricción de edad. Si seguís esa cuenta, iniciá sesión en X (Cuentas → Iniciar sesión) y volvé a traerlo."
         case .instagramUnavailable:
-            "Instagram no muestra ese posteo fuera de la app: puede ser de una cuenta privada, estar borrado o tener restricción de edad. Probá abrirlo en el Navegador y capturarlo."
+            "Instagram no muestra ese posteo sin sesión: puede ser de una cuenta privada o tener restricción de edad. Si seguís esa cuenta, iniciá sesión en Instagram (Cuentas → Iniciar sesión) y volvé a traerlo."
         case .instagramLogin:
-            "Instagram pide iniciar sesión para ver ese posteo. Abrilo en el Navegador, iniciá sesión y capturalo."
+            "Instagram pide iniciar sesión para ver ese posteo. Iniciá sesión (Cuentas → Iniciar sesión) y volvé a traerlo."
         case .rateLimited(let platform):
             "\(platform.title) está limitando las consultas. Esperá unos minutos y volvé a probar."
         case .httpStatus(let platform, let code):
@@ -57,6 +66,9 @@ public enum SocialFetcher {
         return URLSession(configuration: config)
     }()
 
+    /// Whether the in-app browser holds a session; replaceable in tests.
+    nonisolated(unsafe) static var isLoggedIn: (SocialPlatform) async -> Bool = { await SocialSession.isLoggedIn($0) }
+
     /// True for X/Instagram post links (and bare tweet ids) that `fetch` can try.
     public static func canHandle(_ string: String) -> Bool {
         SocialLink.parse(string)?.isFetchable ?? false
@@ -71,13 +83,36 @@ public enum SocialFetcher {
         }
         let draft: PostDraft
         switch link {
-        case .tweet(let id): draft = try await tweetDraft(id: id)
-        case .instagramPost(let code): draft = try await instagramDraft(shortcode: code)
-        case .instagramStory: throw SocialError.instagramStory
+        case .tweet(let id):
+            do {
+                draft = try await tweetDraft(id: id)
+            } catch let error as SocialError where [.tweetUnavailable, .notFound].contains(error) {
+                // Protected accounts: read the post with the user's own session, if there is one.
+                guard await isLoggedIn(.x) else { throw error }
+                draft = try await AuthenticatedFetcher.tweet(id: id)
+            }
+        case .instagramPost(let code):
+            do {
+                draft = try await instagramDraft(shortcode: code)
+            } catch let error as SocialError where Self.needsSession(error) {
+                guard await isLoggedIn(.instagram) else { throw error }
+                draft = try await AuthenticatedFetcher.instagramPost(shortcode: code)
+            }
+        case .instagramStory(let user, let id):
+            guard await isLoggedIn(.instagram) else { throw SocialError.instagramStory }
+            draft = try await AuthenticatedFetcher.instagramStory(user: user, id: id)
         case .instagramProfile, .xProfile: throw SocialError.profileLink
         case .redirect: throw SocialError.unsupportedLink
         }
         return try await complete(draft)
+    }
+
+    /// Public-fetch failures that a logged-in session may get past (private, login wall, embed missing).
+    static func needsSession(_ error: SocialError) -> Bool {
+        switch error {
+        case .instagramUnavailable, .instagramLogin, .notFound, .unreadable: true
+        default: false
+        }
     }
 
     // MARK: Platforms
